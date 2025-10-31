@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: travion-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    networks:
+      - travion-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: travion-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana-dashboard.json:/etc/grafana/provisioning/dashboards/travion.json
+    depends_on:
+      - prometheus
+    networks:
+      - travion-net
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: travion-node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    networks:
+      - travion-net
+
+  mongodb-exporter:
+    image: percona/mongodb_exporter:latest
+    container_name: travion-mongodb-exporter
+    restart: unless-stopped
+    ports:
+      - "9216:9216"
+    environment:
+      - MONGODB_URI=mongodb://admin:password@mongodb:27017
+    networks:
+      - travion-net
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  travion-net:
+    external: true

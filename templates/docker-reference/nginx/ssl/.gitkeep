@@ -1,0 +1,7 @@
+# SSL Certificates Directory
+# Place your SSL certificates here:
+# - travion.crt
+# - travion.key
+
+# For Let's Encrypt, use certbot to generate certificates
+# For development, self-signed certificates will be auto-generated

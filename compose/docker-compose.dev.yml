@@ -1,0 +1,82 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: travion-mongodb-dev
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: devpassword123
+      MONGO_INITDB_DATABASE: travion
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - travion-net
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../../travion-backend
+      dockerfile: Dockerfile
+    container_name: travion-backend-dev
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://admin:devpassword123@mongodb:27017/travion?authSource=admin
+      - LOG_LEVEL=debug
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ../../travion-backend/src:/app/src
+      - ../../travion-backend/logs:/app/logs
+    networks:
+      - travion-net
+
+  ml-service:
+    build:
+      context: ../../ml-services/transport-service
+      dockerfile: Dockerfile
+    container_name: travion-ml-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHON_ENV=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ../../ml-services/transport-service:/app
+      - ml_models:/app/model
+    networks:
+      - travion-net
+
+  nginx:
+    build:
+      context: ../docker/nginx
+    container_name: travion-nginx-dev
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+      - ml-service
+    networks:
+      - travion-net
+
+volumes:
+  mongodb_data:
+  ml_models:
+
+networks:
+  travion-net:
+    driver: bridge

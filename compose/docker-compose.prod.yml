@@ -1,0 +1,124 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: travion-mongodb-prod
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: travion
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ../scripts/backup:/backup
+    networks:
+      - travion-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  backend:
+    image: ghcr.io/travion-research-project/travion-backend:latest
+    container_name: travion-backend-prod
+    restart: always
+    ports:
+      - "127.0.0.1:3001:3001"
+    env_file:
+      - ../../travion-backend/.env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ../../travion-backend/logs:/app/logs
+    networks:
+      - travion-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  ml-service:
+    image: ghcr.io/travion-research-project/ml-service:latest
+    container_name: travion-ml-prod
+    restart: always
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - ../../ml-services/transport-service/.env
+    environment:
+      - PYTHON_ENV=production
+    volumes:
+      - ml_models:/app/model
+    networks:
+      - travion-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+
+  nginx:
+    build:
+      context: ../docker/nginx
+    container_name: travion-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+      - ml-service
+    volumes:
+      - ../docker/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+      - certbot_data:/var/www/certbot:ro
+    networks:
+      - travion-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: travion-certbot
+    volumes:
+      - ../docker/nginx/ssl:/etc/letsencrypt
+      - certbot_data:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - travion-net
+
+volumes:
+  mongodb_data:
+  ml_models:
+  nginx_logs:
+  certbot_data:
+
+networks:
+  travion-net:
+    driver: bridge

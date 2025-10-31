@@ -1,0 +1,33 @@
+---
+- name: Deploy ML Services
+  hosts: travion_servers
+  become: yes
+  vars:
+    app_dir: /opt/travion
+
+  tasks:
+    - name: Pull latest code
+      git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ app_dir }}"
+        version: main
+        force: yes
+
+    - name: Build ML service image
+      command: docker-compose -f {{ app_dir }}/infrastructure/compose/docker-compose.prod.yml build ml-service
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Restart ML service
+      command: docker-compose -f {{ app_dir }}/infrastructure/compose/docker-compose.prod.yml up -d ml-service
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Wait for ML service to be healthy
+      uri:
+        url: http://localhost:8000/health
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 30
+      delay: 2

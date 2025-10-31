@@ -1,0 +1,47 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+.terraformrc
+terraform.rc
+
+# Ansible
+*.retry
+.ansible/
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# SSL Certificates
+*.key
+*.pem
+*.crt
+!ssl/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Backup files
+*.bak
+backup/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Temporary
+tmp/
+temp/
