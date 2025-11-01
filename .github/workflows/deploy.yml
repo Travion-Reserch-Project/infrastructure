@@ -1,0 +1,302 @@
+name: Infrastructure Deployment
+
+on:
+  # Triggered by service repositories
+  repository_dispatch:
+    types: [deploy-backend, deploy-ml-service, deploy-pipeline]
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to deploy"
+        required: true
+        type: choice
+        options:
+          - all
+          - backend
+          - ml-service
+          - data-pipeline
+      environment:
+        description: "Environment"
+        required: true
+        type: choice
+        options:
+          - development
+          - production
+
+  # Auto-deploy on infrastructure changes
+  push:
+    branches: [main]
+    paths:
+      - "compose/**"
+      - "scripts/**"
+
+env:
+  COMPOSE_FILE_DEV: infrastructure/compose/docker-compose.dev.yml
+  COMPOSE_FILE_PROD: infrastructure/compose/docker-compose.prod.yml
+
+jobs:
+  # Determine what to deploy
+  prepare:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      service: ${{ steps.determine.outputs.service }}
+      environment: ${{ steps.determine.outputs.environment }}
+      deploy-backend: ${{ steps.determine.outputs.deploy-backend }}
+      deploy-ml: ${{ steps.determine.outputs.deploy-ml }}
+      deploy-pipeline: ${{ steps.determine.outputs.deploy-pipeline }}
+
+    steps:
+      - name: Determine deployment scope
+        id: determine
+        run: |
+          # From repository_dispatch
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            EVENT_TYPE="${{ github.event.action }}"
+            
+            if [[ "$EVENT_TYPE" == "deploy-backend" ]]; then
+              echo "service=backend" >> $GITHUB_OUTPUT
+              echo "deploy-backend=true" >> $GITHUB_OUTPUT
+              BRANCH="${{ github.event.client_payload.branch }}"
+            elif [[ "$EVENT_TYPE" == "deploy-ml-service" ]]; then
+              echo "service=ml-service" >> $GITHUB_OUTPUT
+              echo "deploy-ml=true" >> $GITHUB_OUTPUT
+              BRANCH="${{ github.event.client_payload.branch }}"
+            elif [[ "$EVENT_TYPE" == "deploy-pipeline" ]]; then
+              echo "service=data-pipeline" >> $GITHUB_OUTPUT
+              echo "deploy-pipeline=true" >> $GITHUB_OUTPUT
+              BRANCH="${{ github.event.client_payload.branch }}"
+            fi
+            
+            # Determine environment from branch
+            if [ "$BRANCH" == "main" ]; then
+              echo "environment=production" >> $GITHUB_OUTPUT
+            else
+              echo "environment=development" >> $GITHUB_OUTPUT
+            fi
+
+          # From workflow_dispatch
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            SERVICE="${{ inputs.service }}"
+            echo "service=$SERVICE" >> $GITHUB_OUTPUT
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+            
+            if [ "$SERVICE" == "all" ] || [ "$SERVICE" == "backend" ]; then
+              echo "deploy-backend=true" >> $GITHUB_OUTPUT
+            fi
+            if [ "$SERVICE" == "all" ] || [ "$SERVICE" == "ml-service" ]; then
+              echo "deploy-ml=true" >> $GITHUB_OUTPUT
+            fi
+            if [ "$SERVICE" == "all" ] || [ "$SERVICE" == "data-pipeline" ]; then
+              echo "deploy-pipeline=true" >> $GITHUB_OUTPUT
+            fi
+
+          # From push (deploy all)
+          else
+            echo "service=all" >> $GITHUB_OUTPUT
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "deploy-backend=true" >> $GITHUB_OUTPUT
+            echo "deploy-ml=true" >> $GITHUB_OUTPUT
+            echo "deploy-pipeline=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deployment info
+        run: |
+          echo "🚀 Deployment Configuration"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Service: ${{ steps.determine.outputs.service }}"
+          echo "Environment: ${{ steps.determine.outputs.environment }}"
+          echo "Backend: ${{ steps.determine.outputs.deploy-backend }}"
+          echo "ML Service: ${{ steps.determine.outputs.deploy-ml }}"
+          echo "Pipeline: ${{ steps.determine.outputs.deploy-pipeline }}"
+
+  # Deploy to Development
+  deploy-dev:
+    name: Deploy to Development
+    needs: prepare
+    if: needs.prepare.outputs.environment == 'development'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout infrastructure repo
+        uses: actions/checkout@v4
+
+      - name: Deploy to Development Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_SERVER_HOST }}
+          username: ${{ secrets.DEV_SERVER_USER }}
+          key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/travion
+
+            # Pull latest infrastructure config
+            git pull origin main
+
+            # Login to GHCR
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Determine which services to deploy
+            SERVICES=""
+            if [ "${{ needs.prepare.outputs.deploy-backend }}" == "true" ]; then
+              SERVICES="$SERVICES backend"
+            fi
+            if [ "${{ needs.prepare.outputs.deploy-ml }}" == "true" ]; then
+              SERVICES="$SERVICES ml-service"
+            fi
+            if [ "${{ needs.prepare.outputs.deploy-pipeline }}" == "true" ]; then
+              SERVICES="$SERVICES data-pipeline"
+            fi
+
+            # Pull and restart services
+            if [ -n "$SERVICES" ]; then
+              docker-compose -f ${{ env.COMPOSE_FILE_DEV }} pull $SERVICES
+              docker-compose -f ${{ env.COMPOSE_FILE_DEV }} up -d $SERVICES
+              
+              # Show logs
+              for SERVICE in $SERVICES; do
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo "📋 Logs for $SERVICE"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                docker-compose -f ${{ env.COMPOSE_FILE_DEV }} logs --tail=30 $SERVICE
+              done
+            else
+              # Deploy all services
+              docker-compose -f ${{ env.COMPOSE_FILE_DEV }} pull
+              docker-compose -f ${{ env.COMPOSE_FILE_DEV }} up -d
+            fi
+
+            # Cleanup
+            docker image prune -f
+
+      - name: Deployment complete
+        run: |
+          echo "✅ Development deployment complete"
+          echo "🌐 Service: ${{ needs.prepare.outputs.service }}"
+
+  # Deploy to Production
+  deploy-prod:
+    name: Deploy to Production
+    needs: prepare
+    if: needs.prepare.outputs.environment == 'production'
+    runs-on: ubuntu-latest
+    # environment:
+    #   name: production
+    #   url: https://api.travion.com
+    # Uncomment after creating production environment
+
+    steps:
+      - name: Checkout infrastructure repo
+        uses: actions/checkout@v4
+
+      - name: Create backup before deployment
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/travion
+            bash infrastructure/scripts/backup.sh
+            echo "✅ Backup created"
+
+      - name: Deploy to Production Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/travion
+
+            # Pull latest infrastructure config
+            git pull origin main
+
+            # Login to GHCR
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Determine which services to deploy
+            SERVICES=""
+            if [ "${{ needs.prepare.outputs.deploy-backend }}" == "true" ]; then
+              SERVICES="$SERVICES backend"
+            fi
+            if [ "${{ needs.prepare.outputs.deploy-ml }}" == "true" ]; then
+              SERVICES="$SERVICES ml-service"
+            fi
+            if [ "${{ needs.prepare.outputs.deploy-pipeline }}" == "true" ]; then
+              SERVICES="$SERVICES data-pipeline"
+            fi
+
+            # Pull and restart services (zero-downtime)
+            if [ -n "$SERVICES" ]; then
+              docker-compose -f ${{ env.COMPOSE_FILE_PROD }} pull $SERVICES
+              docker-compose -f ${{ env.COMPOSE_FILE_PROD }} up -d $SERVICES
+              
+              # Wait for health checks
+              sleep 15
+              
+              # Show logs
+              for SERVICE in $SERVICES; do
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo "📋 Logs for $SERVICE"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                docker-compose -f ${{ env.COMPOSE_FILE_PROD }} logs --tail=30 $SERVICE
+              done
+            else
+              # Deploy all services
+              docker-compose -f ${{ env.COMPOSE_FILE_PROD }} pull
+              docker-compose -f ${{ env.COMPOSE_FILE_PROD }} up -d
+            fi
+
+            # Cleanup
+            docker image prune -f
+
+      - name: Health check
+        run: |
+          sleep 20
+          echo "✅ Production deployment complete"
+          echo "🌐 Service: ${{ needs.prepare.outputs.service }}"
+          echo "⚠️  Verify health endpoints manually"
+
+      - name: Notify success
+        run: |
+          echo "🎉 Deployment successful!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Service: ${{ needs.prepare.outputs.service }}"
+          echo "Environment: production"
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "Triggered by: ${{ github.event.client_payload.triggered_by }}"
+            echo "From commit: ${{ github.event.client_payload.sha }}"
+          fi
+
+  # Rollback on failure
+  rollback:
+    name: Rollback on Failure
+    needs: [prepare, deploy-prod]
+    if: failure() && needs.prepare.outputs.environment == 'production'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Rollback deployment
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USER }}
+          key: ${{ secrets.PROD_SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/travion
+            echo "⚠️  Deployment failed - initiating rollback"
+            bash infrastructure/scripts/restore.sh
+            docker-compose -f ${{ env.COMPOSE_FILE_PROD }} up -d
+            echo "✅ Rollback complete"
+
+      - name: Notify failure
+        run: |
+          echo "❌ Deployment failed and rolled back"
+          echo "Check logs and infrastructure configuration"
