@@ -34,14 +34,14 @@ services:
     ports:
       - "127.0.0.1:3001:3001"
     env_file:
-      - ../../travion-backend/.env
+      - ../.env.backend
     environment:
       - NODE_ENV=production
     depends_on:
       mongodb:
         condition: service_healthy
     volumes:
-      - ../../travion-backend/logs:/app/logs
+      - backend_logs:/app/logs
     networks:
       - travion-net
     logging:
@@ -62,7 +62,7 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     env_file:
-      - ../../ml-services/transport-service/.env
+      - ../.env.mlservice
     environment:
       - PYTHON_ENV=production
     volumes:
@@ -118,6 +118,7 @@ volumes:
   ml_models:
   nginx_logs:
   certbot_data:
+  backend_logs:
 
 networks:
   travion-net:
