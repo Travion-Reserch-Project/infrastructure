@@ -153,20 +153,20 @@ jobs:
 
             # Pull and restart services
             if [ -n "$SERVICES" ]; then
-              docker-compose -f ${{ env.COMPOSE_FILE_DEV }} pull $SERVICES
-              docker-compose -f ${{ env.COMPOSE_FILE_DEV }} up -d $SERVICES
+              docker compose -f ${{ env.COMPOSE_FILE_DEV }} pull $SERVICES
+              docker compose -f ${{ env.COMPOSE_FILE_DEV }} up -d $SERVICES
               
               # Show logs
               for SERVICE in $SERVICES; do
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 echo "📋 Logs for $SERVICE"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                docker-compose -f ${{ env.COMPOSE_FILE_DEV }} logs --tail=30 $SERVICE
+                docker compose -f ${{ env.COMPOSE_FILE_DEV }} logs --tail=30 $SERVICE
               done
             else
               # Deploy all services
-              docker-compose -f ${{ env.COMPOSE_FILE_DEV }} pull
-              docker-compose -f ${{ env.COMPOSE_FILE_DEV }} up -d
+              docker compose -f ${{ env.COMPOSE_FILE_DEV }} pull
+              docker compose -f ${{ env.COMPOSE_FILE_DEV }} up -d
             fi
 
             # Cleanup
@@ -234,8 +234,8 @@ jobs:
 
             # Pull and restart services (zero-downtime)
             if [ -n "$SERVICES" ]; then
-              docker-compose -f ${{ env.COMPOSE_FILE_PROD }} pull $SERVICES
-              docker-compose -f ${{ env.COMPOSE_FILE_PROD }} up -d $SERVICES
+              docker compose -f ${{ env.COMPOSE_FILE_PROD }} pull $SERVICES
+              docker compose -f ${{ env.COMPOSE_FILE_PROD }} up -d $SERVICES
               
               # Wait for health checks
               sleep 15
@@ -245,12 +245,12 @@ jobs:
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 echo "📋 Logs for $SERVICE"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                docker-compose -f ${{ env.COMPOSE_FILE_PROD }} logs --tail=30 $SERVICE
+                docker compose -f ${{ env.COMPOSE_FILE_PROD }} logs --tail=30 $SERVICE
               done
             else
               # Deploy all services
-              docker-compose -f ${{ env.COMPOSE_FILE_PROD }} pull
-              docker-compose -f ${{ env.COMPOSE_FILE_PROD }} up -d
+              docker compose -f ${{ env.COMPOSE_FILE_PROD }} pull
+              docker compose -f ${{ env.COMPOSE_FILE_PROD }} up -d
             fi
 
             # Cleanup
@@ -293,7 +293,7 @@ jobs:
             cd /opt/travion
             echo "⚠️  Deployment failed - initiating rollback"
             bash infrastructure/scripts/restore.sh
-            docker-compose -f ${{ env.COMPOSE_FILE_PROD }} up -d
+            docker compose -f ${{ env.COMPOSE_FILE_PROD }} up -d
             echo "✅ Rollback complete"
 
       - name: Notify failure
