@@ -38,8 +38,6 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
-    volumes:
-      - backend_logs:/app/logs
     networks:
       - travion-net
     logging:

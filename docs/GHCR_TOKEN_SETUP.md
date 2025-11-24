@@ -8,6 +8,7 @@
 2. Click "Generate new token" → "Generate new token (classic)"
 
 3. Configure the token:
+
    - **Name**: `GHCR Package Access for Deployments`
    - **Expiration**: Choose appropriate duration (90 days, 1 year, or no expiration)
    - **Scopes**: Select the following:
@@ -26,6 +27,7 @@
 2. Click "New organization secret"
 
 3. Configure:
+
    - **Name**: `GHCR_TOKEN`
    - **Secret**: Paste the PAT you just created
    - **Repository access**: Select "All repositories" or choose specific repos
@@ -37,6 +39,7 @@
 After adding the secret, the deployment workflow will use it to authenticate with GHCR and pull private container images.
 
 Test by:
+
 1. Triggering a deployment from backend repo
 2. Or manually running the infrastructure deployment workflow
 
