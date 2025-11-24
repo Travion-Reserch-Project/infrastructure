@@ -245,6 +245,18 @@ jobs:
               echo "⚠️  Created .env.mlservice from example"
             fi
 
+            # Update Infisical credentials if provided (from repository_dispatch)
+            if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+              if [ -n "${{ github.event.client_payload.infisical.client_id }}" ]; then
+                echo "🔐 Updating Infisical credentials in .env.backend..."
+                sed -i "s|^INFISICAL_CLIENT_ID=.*|INFISICAL_CLIENT_ID=${{ github.event.client_payload.infisical.client_id }}|" .env.backend
+                sed -i "s|^INFISICAL_CLIENT_SECRET=.*|INFISICAL_CLIENT_SECRET=${{ github.event.client_payload.infisical.client_secret }}|" .env.backend
+                sed -i "s|^INFISICAL_PROJECT_ID=.*|INFISICAL_PROJECT_ID=${{ github.event.client_payload.infisical.project_id }}|" .env.backend
+                sed -i "s|^INFISICAL_ENVIRONMENT=.*|INFISICAL_ENVIRONMENT=${{ github.event.client_payload.infisical.environment }}|" .env.backend
+                echo "✅ Infisical credentials updated"
+              fi
+            fi
+
             # Determine which services to deploy
             SERVICES=""
             if [ "${{ needs.prepare.outputs.deploy-backend }}" == "true" ]; then
