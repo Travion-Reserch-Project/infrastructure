@@ -26,14 +26,14 @@ scrape_configs:
     static_configs:
       - targets: ["mongodb:27017"]
 
-  # Backend service (if it exposes /metrics endpoint)
+  # Backend service
   - job_name: "backend"
     static_configs:
       - targets: ["backend:3001"]
     metrics_path: "/metrics"
     scrape_interval: 30s
 
-  # ML service (if it exposes /metrics endpoint)
+  # ML service
   - job_name: "ml-service"
     static_configs:
       - targets: ["ml-service:8000"]
