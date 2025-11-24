@@ -147,6 +147,9 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SNAPSHOTS_EXTERNAL_ENABLED=true
+      - GF_SNAPSHOTS_EXTERNAL_SNAPSHOT_URL=https://snapshots.raintank.io
+      - GF_SNAPSHOTS_EXTERNAL_SNAPSHOT_NAME=Publish to snapshots.raintank.io
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
