@@ -139,6 +139,20 @@ jobs:
             # Login to GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+            # Ensure environment files exist
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              echo "⚠️  Created .env from example - please configure it!"
+            fi
+            if [ ! -f .env.backend ]; then
+              cp .env.backend.example .env.backend
+              echo "⚠️  Created .env.backend from example"
+            fi
+            if [ ! -f .env.mlservice ]; then
+              cp .env.mlservice.example .env.mlservice
+              echo "⚠️  Created .env.mlservice from example"
+            fi
+
             # Determine which services to deploy
             SERVICES=""
             if [ "${{ needs.prepare.outputs.deploy-backend }}" == "true" ]; then
@@ -146,9 +160,6 @@ jobs:
             fi
             if [ "${{ needs.prepare.outputs.deploy-ml }}" == "true" ]; then
               SERVICES="$SERVICES ml-service"
-            fi
-            if [ "${{ needs.prepare.outputs.deploy-pipeline }}" == "true" ]; then
-              SERVICES="$SERVICES data-pipeline"
             fi
 
             # Pull and restart services
@@ -220,6 +231,20 @@ jobs:
             # Login to GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+            # Ensure environment files exist
+            if [ ! -f .env ]; then
+              cp .env.example .env
+              echo "⚠️  Created .env from example - please configure it!"
+            fi
+            if [ ! -f .env.backend ]; then
+              cp .env.backend.example .env.backend
+              echo "⚠️  Created .env.backend from example"
+            fi
+            if [ ! -f .env.mlservice ]; then
+              cp .env.mlservice.example .env.mlservice
+              echo "⚠️  Created .env.mlservice from example"
+            fi
+
             # Determine which services to deploy
             SERVICES=""
             if [ "${{ needs.prepare.outputs.deploy-backend }}" == "true" ]; then
@@ -227,9 +252,6 @@ jobs:
             fi
             if [ "${{ needs.prepare.outputs.deploy-ml }}" == "true" ]; then
               SERVICES="$SERVICES ml-service"
-            fi
-            if [ "${{ needs.prepare.outputs.deploy-pipeline }}" == "true" ]; then
-              SERVICES="$SERVICES data-pipeline"
             fi
 
             # Pull and restart services (zero-downtime)
