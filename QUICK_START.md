@@ -12,6 +12,7 @@ nano .env
 ```
 
 Set these values:
+
 ```bash
 MONGO_ROOT_USERNAME=admin
 MONGO_ROOT_PASSWORD=YourSecurePassword123
@@ -69,21 +70,24 @@ docker compose -f compose/docker-compose.prod.yml logs -f backend
 ## 🔍 Troubleshooting
 
 ### Check if image exists in GHCR:
+
 ```bash
 docker manifest inspect ghcr.io/travion-research-project/travion-backend:latest
 ```
 
 ### View all running containers:
-```bash
+
+````bash
 docker ps
 
 ### Stop all services:
 ```bash
 cd /opt/travion
 docker compose -f compose/docker-compose.prod.yml down
-```
+````
 
 ### View logs for specific service:
+
 ```bash
 docker compose -f compose/docker-compose.prod.yml logs -f backend
 docker compose -f compose/docker-compose.prod.yml logs -f mongodb

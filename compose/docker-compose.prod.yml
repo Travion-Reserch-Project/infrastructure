@@ -54,7 +54,7 @@ services:
           memory: 512M
 
   ml-service:
-    image: ghcr.io/travion-research-project/ml-service:latest
+    image: ghcr.io/travion-reserch-project/ml-service:latest
     container_name: travion-ml-prod
     restart: always
     ports:

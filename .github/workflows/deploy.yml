@@ -268,19 +268,34 @@ jobs:
 
             # Pull and restart services (zero-downtime)
             if [ -n "$SERVICES" ]; then
-              docker compose -f compose/docker-compose.prod.yml pull $SERVICES
-              docker compose -f compose/docker-compose.prod.yml up -d $SERVICES
-              
-              # Wait for health checks
-              sleep 15
-              
-              # Show logs
+              # Pull images with error handling for each service
               for SERVICE in $SERVICES; do
-                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                echo "📋 Logs for $SERVICE"
-                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                docker compose -f compose/docker-compose.prod.yml logs --tail=30 $SERVICE
+                echo "📦 Pulling $SERVICE..."
+                if docker compose -f compose/docker-compose.prod.yml pull $SERVICE 2>&1; then
+                  echo "✅ $SERVICE image pulled successfully"
+                else
+                  echo "⚠️  $SERVICE image not available, skipping..."
+                  SERVICES=$(echo "$SERVICES" | sed "s/$SERVICE//g")
+                fi
               done
+              
+              # Deploy only successfully pulled services
+              if [ -n "$SERVICES" ]; then
+                docker compose -f compose/docker-compose.prod.yml up -d $SERVICES
+                
+                # Wait for health checks
+                sleep 15
+                
+                # Show logs
+                for SERVICE in $SERVICES; do
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  echo "📋 Logs for $SERVICE"
+                  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                  docker compose -f compose/docker-compose.prod.yml logs --tail=30 $SERVICE
+                done
+              else
+                echo "⚠️  No services to deploy"
+              fi
             else
               # Deploy all services
               docker compose -f compose/docker-compose.prod.yml pull
