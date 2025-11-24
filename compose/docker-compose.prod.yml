@@ -30,7 +30,7 @@ services:
     container_name: travion-backend-prod
     restart: always
     ports:
-      - "127.0.0.1:3001:3001"
+      - "3001:3001"
     env_file:
       - ../.env.backend
     environment:
