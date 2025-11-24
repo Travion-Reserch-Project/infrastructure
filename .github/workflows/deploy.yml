@@ -136,8 +136,8 @@ jobs:
             # Pull latest infrastructure config
             git pull origin main
 
-            # Login to GHCR
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            # Login to GHCR with PAT for private packages
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Ensure environment files exist
             if [ ! -f .env ]; then
@@ -228,8 +228,8 @@ jobs:
             # Pull latest infrastructure config
             git pull origin main
 
-            # Login to GHCR
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            # Login to GHCR with PAT for private packages
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Ensure environment files exist
             if [ ! -f .env ]; then
