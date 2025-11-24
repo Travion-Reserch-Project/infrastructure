@@ -26,7 +26,7 @@ services:
       retries: 5
 
   backend:
-    image: ghcr.io/travion-research-project/travion-backend:latest
+    image: ghcr.io/travion-reserch-project/travion-backend:latest
     container_name: travion-backend-prod
     restart: always
     ports:
