@@ -6,28 +6,36 @@ global:
     environment: "production"
 
 scrape_configs:
+  # Prometheus itself
   - job_name: "prometheus"
     static_configs:
       - targets: ["localhost:9090"]
 
+  # System metrics (CPU, RAM, Disk)
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Docker container metrics
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # MongoDB metrics
+  - job_name: "mongodb"
+    static_configs:
+      - targets: ["mongodb:27017"]
+
+  # Backend service (if it exposes /metrics endpoint)
   - job_name: "backend"
     static_configs:
       - targets: ["backend:3001"]
     metrics_path: "/metrics"
+    scrape_interval: 30s
 
+  # ML service (if it exposes /metrics endpoint)
   - job_name: "ml-service"
     static_configs:
       - targets: ["ml-service:8000"]
     metrics_path: "/metrics"
-
-  - job_name: "mongodb"
-    static_configs:
-      - targets: ["mongodb-exporter:9216"]
-
-  - job_name: "nginx"
-    static_configs:
-      - targets: ["nginx-exporter:9113"]
-
-  - job_name: "node-exporter"
-    static_configs:
-      - targets: ["node-exporter:9100"]
+    scrape_interval: 30s
