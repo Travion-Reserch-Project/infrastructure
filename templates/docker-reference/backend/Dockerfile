@@ -1,10 +1,5 @@
-# ⚠️ THIS FILE IS DEPRECATED
-# 
-# The actual Dockerfile is now located in: ../../travion-backend/Dockerfile
-# 
-# This is kept for reference only. Please use the Dockerfile in the service directory.
-# 
-# To build: cd ../../travion-backend && docker build -t travion-backend .
+
+
 
 FROM node:18-alpine AS builder
 
