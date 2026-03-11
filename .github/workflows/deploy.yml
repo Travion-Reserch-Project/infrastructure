@@ -132,6 +132,7 @@ jobs:
           port: 22
           script: |
             cd /opt/travion
+            COMPOSE_FILE="compose/docker-compose.dev.yml"
 
             # Pull latest infrastructure config
             git pull origin main
@@ -153,31 +154,76 @@ jobs:
               echo "⚠️  Created .env.mlservice from example"
             fi
 
+            # Update ML image tags if provided by ml-services dispatch payload
+            upsert_env_var() {
+              local key="$1"
+              local val="$2"
+              local file="$3"
+              if [ -z "$val" ]; then
+                return 0
+              fi
+
+              if grep -q "^${key}=" "$file"; then
+                sed -i "s|^${key}=.*|${key}=${val}|" "$file"
+              else
+                echo "${key}=${val}" >> "$file"
+              fi
+            }
+
+            if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+              upsert_env_var "AI_AGENT_ENGINE_IMAGE" "${{ github.event.client_payload.ai_agent_engine_image }}" ".env.mlservice"
+              upsert_env_var "MCP_GOOGLE_MAPS_IMAGE" "${{ github.event.client_payload.mcp_google_maps_image }}" ".env.mlservice"
+              upsert_env_var "SAFETY_SERVICE_IMAGE" "${{ github.event.client_payload.safety_service_image }}" ".env.mlservice"
+              upsert_env_var "TRANSPORT_SERVICE_IMAGE" "${{ github.event.client_payload.transport_service_image }}" ".env.mlservice"
+              upsert_env_var "WEATHER_SERVICE_IMAGE" "${{ github.event.client_payload.weather_service_image }}" ".env.mlservice"
+            fi
+
             # Determine which services to deploy
             SERVICES=""
             if [ "${{ needs.prepare.outputs.deploy-backend }}" == "true" ]; then
               SERVICES="$SERVICES backend"
             fi
+
             if [ "${{ needs.prepare.outputs.deploy-ml }}" == "true" ]; then
-              SERVICES="$SERVICES ml-service"
+              AVAILABLE_SERVICES="$(docker compose -f "$COMPOSE_FILE" config --services)"
+              NEW_ML_SERVICE_FOUND="false"
+
+              add_if_exists() {
+                local svc="$1"
+                if echo "$AVAILABLE_SERVICES" | grep -qx "$svc"; then
+                  SERVICES="$SERVICES $svc"
+                  NEW_ML_SERVICE_FOUND="true"
+                fi
+              }
+
+              add_if_exists "ai-agent-engine"
+              add_if_exists "mcp-google-maps"
+              add_if_exists "safety-service"
+              add_if_exists "transport-service"
+              add_if_exists "weather-service"
+
+              # Legacy fallback only if split services do not exist in compose
+              if [ "$NEW_ML_SERVICE_FOUND" != "true" ] && echo "$AVAILABLE_SERVICES" | grep -qx "ml-service"; then
+                SERVICES="$SERVICES ml-service"
+              fi
             fi
 
             # Pull and restart services
             if [ -n "$SERVICES" ]; then
-              docker compose -f compose/docker-compose.dev.yml pull $SERVICES
-              docker compose -f compose/docker-compose.dev.yml up -d $SERVICES
+              docker compose -f "$COMPOSE_FILE" pull $SERVICES
+              docker compose -f "$COMPOSE_FILE" up -d $SERVICES
               
               # Show logs
               for SERVICE in $SERVICES; do
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 echo "📋 Logs for $SERVICE"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                docker compose -f compose/docker-compose.dev.yml logs --tail=30 $SERVICE
+                docker compose -f "$COMPOSE_FILE" logs --tail=30 $SERVICE
               done
             else
               # Deploy all services
-              docker compose -f compose/docker-compose.dev.yml pull
-              docker compose -f compose/docker-compose.dev.yml up -d
+              docker compose -f "$COMPOSE_FILE" pull
+              docker compose -f "$COMPOSE_FILE" up -d
             fi
 
             # Cleanup
@@ -224,6 +270,7 @@ jobs:
           port: 22
           script: |
             cd /opt/travion
+            COMPOSE_FILE="compose/docker-compose.prod.yml"
 
             # Pull latest infrastructure config
             git pull origin main
@@ -245,6 +292,30 @@ jobs:
               echo "⚠️  Created .env.mlservice from example"
             fi
 
+            # Update ML image tags if provided by ml-services dispatch payload
+            upsert_env_var() {
+              local key="$1"
+              local val="$2"
+              local file="$3"
+              if [ -z "$val" ]; then
+                return 0
+              fi
+
+              if grep -q "^${key}=" "$file"; then
+                sed -i "s|^${key}=.*|${key}=${val}|" "$file"
+              else
+                echo "${key}=${val}" >> "$file"
+              fi
+            }
+
+            if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+              upsert_env_var "AI_AGENT_ENGINE_IMAGE" "${{ github.event.client_payload.ai_agent_engine_image }}" ".env.mlservice"
+              upsert_env_var "MCP_GOOGLE_MAPS_IMAGE" "${{ github.event.client_payload.mcp_google_maps_image }}" ".env.mlservice"
+              upsert_env_var "SAFETY_SERVICE_IMAGE" "${{ github.event.client_payload.safety_service_image }}" ".env.mlservice"
+              upsert_env_var "TRANSPORT_SERVICE_IMAGE" "${{ github.event.client_payload.transport_service_image }}" ".env.mlservice"
+              upsert_env_var "WEATHER_SERVICE_IMAGE" "${{ github.event.client_payload.weather_service_image }}" ".env.mlservice"
+            fi
+
             # Update Infisical credentials if provided (from repository_dispatch)
             if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
               if [ -n "${{ github.event.client_payload.infisical.client_id }}" ]; then
@@ -263,7 +334,27 @@ jobs:
               SERVICES="$SERVICES backend"
             fi
             if [ "${{ needs.prepare.outputs.deploy-ml }}" == "true" ]; then
-              SERVICES="$SERVICES ml-service"
+              AVAILABLE_SERVICES="$(docker compose -f "$COMPOSE_FILE" config --services)"
+              NEW_ML_SERVICE_FOUND="false"
+
+              add_if_exists() {
+                local svc="$1"
+                if echo "$AVAILABLE_SERVICES" | grep -qx "$svc"; then
+                  SERVICES="$SERVICES $svc"
+                  NEW_ML_SERVICE_FOUND="true"
+                fi
+              }
+
+              add_if_exists "ai-agent-engine"
+              add_if_exists "mcp-google-maps"
+              add_if_exists "safety-service"
+              add_if_exists "transport-service"
+              add_if_exists "weather-service"
+
+              # Legacy fallback only if split services do not exist in compose
+              if [ "$NEW_ML_SERVICE_FOUND" != "true" ] && echo "$AVAILABLE_SERVICES" | grep -qx "ml-service"; then
+                SERVICES="$SERVICES ml-service"
+              fi
             fi
 
             # Pull and restart services (zero-downtime)
@@ -271,7 +362,7 @@ jobs:
               # Pull images with error handling for each service
               for SERVICE in $SERVICES; do
                 echo "📦 Pulling $SERVICE..."
-                if docker compose -f compose/docker-compose.prod.yml pull $SERVICE 2>&1; then
+                if docker compose -f "$COMPOSE_FILE" pull $SERVICE 2>&1; then
                   echo "✅ $SERVICE image pulled successfully"
                 else
                   echo "⚠️  $SERVICE image not available, skipping..."
@@ -281,7 +372,7 @@ jobs:
               
               # Deploy only successfully pulled services
               if [ -n "$SERVICES" ]; then
-                docker compose -f compose/docker-compose.prod.yml up -d $SERVICES
+                docker compose -f "$COMPOSE_FILE" up -d $SERVICES
                 
                 # Wait for health checks
                 sleep 15
@@ -291,15 +382,15 @@ jobs:
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   echo "📋 Logs for $SERVICE"
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                  docker compose -f compose/docker-compose.prod.yml logs --tail=30 $SERVICE
+                  docker compose -f "$COMPOSE_FILE" logs --tail=30 $SERVICE
                 done
               else
                 echo "⚠️  No services to deploy"
               fi
             else
               # Deploy all services
-              docker compose -f compose/docker-compose.prod.yml pull
-              docker compose -f compose/docker-compose.prod.yml up -d
+              docker compose -f "$COMPOSE_FILE" pull
+              docker compose -f "$COMPOSE_FILE" up -d
             fi
 
             # Cleanup

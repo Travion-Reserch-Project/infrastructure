@@ -76,6 +76,106 @@ services:
           cpus: "2.0"
           memory: 2G
 
+  transport-service:
+    image: ${TRANSPORT_SERVICE_IMAGE:-ghcr.io/travion-reserch-project/transport-service:latest}
+    container_name: travion-transport-service-prod
+    restart: always
+    ports:
+      - "8001:8001"
+    env_file:
+      - ../.env.mlservice
+    environment:
+      - PYTHON_ENV=production
+    volumes:
+      - ml_models:/app/model
+    networks:
+      - travion-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  safety-service:
+    image: ${SAFETY_SERVICE_IMAGE:-ghcr.io/travion-reserch-project/safety-service:latest}
+    container_name: travion-safety-service-prod
+    restart: always
+    ports:
+      - "8003:8003"
+    env_file:
+      - ../.env.mlservice
+    environment:
+      - PYTHON_ENV=production
+    volumes:
+      - ml_models:/app/model
+    networks:
+      - travion-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  weather-service:
+    image: ${WEATHER_SERVICE_IMAGE:-ghcr.io/travion-reserch-project/weather-service:latest}
+    container_name: travion-weather-service-prod
+    restart: always
+    ports:
+      - "8002:8002"
+    env_file:
+      - ../.env.mlservice
+    environment:
+      - PYTHON_ENV=production
+    volumes:
+      - ml_models:/app/model
+    networks:
+      - travion-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ai-agent-engine:
+    image: ${AI_AGENT_ENGINE_IMAGE:-ghcr.io/travion-reserch-project/ai-agent-engine:latest}
+    container_name: travion-ai-agent-engine-prod
+    restart: always
+    ports:
+      - "8004:8004"
+    env_file:
+      - ../.env.mlservice
+    environment:
+      - PYTHON_ENV=production
+    volumes:
+      - ml_models:/app/model
+    networks:
+      - travion-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  mcp-google-maps:
+    image: ${MCP_GOOGLE_MAPS_IMAGE:-ghcr.io/travion-reserch-project/mcp-google-maps:latest}
+    container_name: travion-mcp-google-maps-prod
+    restart: always
+    ports:
+      - "8010:8010"
+    env_file:
+      - ../.env.mlservice
+    environment:
+      - PYTHON_ENV=production
+    volumes:
+      - ml_models:/app/model
+    networks:
+      - travion-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   nginx:
     build:
       context: ../docker/nginx

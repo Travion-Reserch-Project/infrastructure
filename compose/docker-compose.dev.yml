@@ -49,10 +49,17 @@ services:
     container_name: travion-ml-dev
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8001:8001"
     environment:
       - PYTHON_ENV=development
       - LOG_LEVEL=DEBUG
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+      - DATA_SOURCE=mongodb
+      - MONGODB_URI=mongodb+srv://travionbeclient:travion123@traviondb.ghsgv8q.mongodb.net/?appName=TravionDB
+      - MONGODB_DB_NAME=transport_service
+      - DAGSHUB_REPO_OWNER=iamsahan
+      - DAGSHUB_REPO_NAME=ml-services
     volumes:
       - ../../ml-services/transport-service:/app
       - ml_models:/app/model
