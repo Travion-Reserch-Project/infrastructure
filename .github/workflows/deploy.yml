@@ -187,13 +187,10 @@ jobs:
 
             if [ "${{ needs.prepare.outputs.deploy-ml }}" == "true" ]; then
               AVAILABLE_SERVICES="$(docker compose -f "$COMPOSE_FILE" config --services)"
-              NEW_ML_SERVICE_FOUND="false"
-
               add_if_exists() {
                 local svc="$1"
                 if echo "$AVAILABLE_SERVICES" | grep -qx "$svc"; then
                   SERVICES="$SERVICES $svc"
-                  NEW_ML_SERVICE_FOUND="true"
                 fi
               }
 
@@ -203,10 +200,6 @@ jobs:
               add_if_exists "transport-service"
               add_if_exists "weather-service"
 
-              # Legacy fallback only if split services do not exist in compose
-              if [ "$NEW_ML_SERVICE_FOUND" != "true" ] && echo "$AVAILABLE_SERVICES" | grep -qx "ml-service"; then
-                SERVICES="$SERVICES ml-service"
-              fi
             fi
 
             # Pull and restart services
@@ -338,13 +331,10 @@ jobs:
             fi
             if [ "${{ needs.prepare.outputs.deploy-ml }}" == "true" ]; then
               AVAILABLE_SERVICES="$(docker compose -f "$COMPOSE_FILE" config --services)"
-              NEW_ML_SERVICE_FOUND="false"
-
               add_if_exists() {
                 local svc="$1"
                 if echo "$AVAILABLE_SERVICES" | grep -qx "$svc"; then
                   SERVICES="$SERVICES $svc"
-                  NEW_ML_SERVICE_FOUND="true"
                 fi
               }
 
@@ -354,10 +344,6 @@ jobs:
               add_if_exists "transport-service"
               add_if_exists "weather-service"
 
-              # Legacy fallback only if split services do not exist in compose
-              if [ "$NEW_ML_SERVICE_FOUND" != "true" ] && echo "$AVAILABLE_SERVICES" | grep -qx "ml-service"; then
-                SERVICES="$SERVICES ml-service"
-              fi
             fi
 
             # Pull and restart services (zero-downtime)

@@ -51,31 +51,6 @@ services:
           cpus: "1.0"
           memory: 512M
 
-  ml-service:
-    image: ghcr.io/travion-reserch-project/travion-ml-service:latest
-    container_name: travion-ml-prod
-    restart: always
-    ports:
-      - "8001:8001"
-    env_file:
-      - ../.env.mlservice
-    environment:
-      - PYTHON_ENV=production
-    volumes:
-      - ml_models:/app/model
-    networks:
-      - travion-net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: 2G
-
   transport-service:
     image: ${TRANSPORT_SERVICE_IMAGE:-ghcr.io/travion-reserch-project/transport-service:latest}
     container_name: travion-transport-service-prod
@@ -186,7 +161,7 @@ services:
       - "443:443"
     depends_on:
       - backend
-      - ml-service
+      - transport-service
     volumes:
       - ../docker/nginx/ssl:/etc/nginx/ssl:ro
       - nginx_logs:/var/log/nginx
