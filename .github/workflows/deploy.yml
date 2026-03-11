@@ -150,10 +150,12 @@ jobs:
               cp .env.backend.example .env.backend
               echo "⚠️  Created .env.backend from example"
             fi
-            if [ ! -f .env.mlservice ]; then
-              cp .env.mlservice.example .env.mlservice
-              echo "⚠️  Created .env.mlservice from example"
-            fi
+            for ENV_FILE in .env.transport-service .env.safety-service .env.weather-service .env.ai-agent-engine .env.mcp-google-maps; do
+              if [ ! -f "$ENV_FILE" ]; then
+                touch "$ENV_FILE"
+                echo "⚠️  Created missing $ENV_FILE - please configure it"
+              fi
+            done
 
             # Update ML image tags if provided by ml-services dispatch payload
             upsert_env_var() {
@@ -172,11 +174,11 @@ jobs:
             }
 
             if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
-              upsert_env_var "AI_AGENT_ENGINE_IMAGE" "${{ github.event.client_payload.ai_agent_engine_image }}" ".env.mlservice"
-              upsert_env_var "MCP_GOOGLE_MAPS_IMAGE" "${{ github.event.client_payload.mcp_google_maps_image }}" ".env.mlservice"
-              upsert_env_var "SAFETY_SERVICE_IMAGE" "${{ github.event.client_payload.safety_service_image }}" ".env.mlservice"
-              upsert_env_var "TRANSPORT_SERVICE_IMAGE" "${{ github.event.client_payload.transport_service_image }}" ".env.mlservice"
-              upsert_env_var "WEATHER_SERVICE_IMAGE" "${{ github.event.client_payload.weather_service_image }}" ".env.mlservice"
+              upsert_env_var "AI_AGENT_ENGINE_IMAGE" "${{ github.event.client_payload.ai_agent_engine_image }}" ".env"
+              upsert_env_var "MCP_GOOGLE_MAPS_IMAGE" "${{ github.event.client_payload.mcp_google_maps_image }}" ".env"
+              upsert_env_var "SAFETY_SERVICE_IMAGE" "${{ github.event.client_payload.safety_service_image }}" ".env"
+              upsert_env_var "TRANSPORT_SERVICE_IMAGE" "${{ github.event.client_payload.transport_service_image }}" ".env"
+              upsert_env_var "WEATHER_SERVICE_IMAGE" "${{ github.event.client_payload.weather_service_image }}" ".env"
             fi
 
             # Determine which services to deploy
@@ -283,10 +285,12 @@ jobs:
               cp .env.backend.example .env.backend
               echo "⚠️  Created .env.backend from example"
             fi
-            if [ ! -f .env.mlservice ]; then
-              cp .env.mlservice.example .env.mlservice
-              echo "⚠️  Created .env.mlservice from example"
-            fi
+            for ENV_FILE in .env.transport-service .env.safety-service .env.weather-service .env.ai-agent-engine .env.mcp-google-maps; do
+              if [ ! -f "$ENV_FILE" ]; then
+                touch "$ENV_FILE"
+                echo "⚠️  Created missing $ENV_FILE - please configure it"
+              fi
+            done
 
             # Update ML image tags if provided by ml-services dispatch payload
             upsert_env_var() {
@@ -305,11 +309,11 @@ jobs:
             }
 
             if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
-              upsert_env_var "AI_AGENT_ENGINE_IMAGE" "${{ github.event.client_payload.ai_agent_engine_image }}" ".env.mlservice"
-              upsert_env_var "MCP_GOOGLE_MAPS_IMAGE" "${{ github.event.client_payload.mcp_google_maps_image }}" ".env.mlservice"
-              upsert_env_var "SAFETY_SERVICE_IMAGE" "${{ github.event.client_payload.safety_service_image }}" ".env.mlservice"
-              upsert_env_var "TRANSPORT_SERVICE_IMAGE" "${{ github.event.client_payload.transport_service_image }}" ".env.mlservice"
-              upsert_env_var "WEATHER_SERVICE_IMAGE" "${{ github.event.client_payload.weather_service_image }}" ".env.mlservice"
+              upsert_env_var "AI_AGENT_ENGINE_IMAGE" "${{ github.event.client_payload.ai_agent_engine_image }}" ".env"
+              upsert_env_var "MCP_GOOGLE_MAPS_IMAGE" "${{ github.event.client_payload.mcp_google_maps_image }}" ".env"
+              upsert_env_var "SAFETY_SERVICE_IMAGE" "${{ github.event.client_payload.safety_service_image }}" ".env"
+              upsert_env_var "TRANSPORT_SERVICE_IMAGE" "${{ github.event.client_payload.transport_service_image }}" ".env"
+              upsert_env_var "WEATHER_SERVICE_IMAGE" "${{ github.event.client_payload.weather_service_image }}" ".env"
             fi
 
             # Update Infisical credentials if provided (from repository_dispatch)

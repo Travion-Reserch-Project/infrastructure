@@ -58,11 +58,11 @@ services:
     ports:
       - "8001:8001"
     env_file:
-      - ../.env.mlservice
+      - ../.env.transport-service
     environment:
       - PYTHON_ENV=production
     volumes:
-      - ml_models:/app/model
+      - transport_models:/app/ml-models
     networks:
       - travion-net
     logging:
@@ -78,11 +78,11 @@ services:
     ports:
       - "8003:8003"
     env_file:
-      - ../.env.mlservice
+      - ../.env.safety-service
     environment:
       - PYTHON_ENV=production
     volumes:
-      - ml_models:/app/model
+      - safety_models:/app/model
     networks:
       - travion-net
     logging:
@@ -98,11 +98,11 @@ services:
     ports:
       - "8002:8002"
     env_file:
-      - ../.env.mlservice
+      - ../.env.weather-service
     environment:
       - PYTHON_ENV=production
     volumes:
-      - ml_models:/app/model
+      - weather_models:/app/models
     networks:
       - travion-net
     logging:
@@ -118,11 +118,12 @@ services:
     ports:
       - "8004:8004"
     env_file:
-      - ../.env.mlservice
+      - ../.env.ai-agent-engine
     environment:
       - PYTHON_ENV=production
     volumes:
-      - ml_models:/app/model
+      - ai_models:/app/models
+      - ai_data:/app/data
     networks:
       - travion-net
     logging:
@@ -138,11 +139,9 @@ services:
     ports:
       - "8010:8010"
     env_file:
-      - ../.env.mlservice
+      - ../.env.mcp-google-maps
     environment:
       - PYTHON_ENV=production
-    volumes:
-      - ml_models:/app/model
     networks:
       - travion-net
     logging:
@@ -264,7 +263,11 @@ services:
 
 volumes:
   mongodb_data:
-  ml_models:
+  transport_models:
+  safety_models:
+  weather_models:
+  ai_models:
+  ai_data:
   nginx_logs:
   certbot_data:
   backend_logs:
