@@ -51,6 +51,25 @@ services:
           cpus: "1.0"
           memory: 512M
 
+  frontend:
+    image: ghcr.io/iamsahan/the-travion:latest
+    container_name: travion-frontend-prod
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://traviongo.online/api
+    depends_on:
+      - backend
+    networks:
+      - travion-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   transport-service:
     image: ${TRANSPORT_SERVICE_IMAGE:-ghcr.io/travion-reserch-project/transport-service:latest}
     container_name: travion-transport-service-prod
